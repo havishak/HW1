@@ -1,0 +1,49 @@
+---
+title: "HW 1"
+author: 
+    - Havi Khurana
+    - Cassie Malcom
+    - Merly Klaas
+date: "2/10/2022"
+output: 
+    html_document:
+        toc: TRUE
+        toc_float: TRUE
+        code_folding: hide
+        highlight: kate
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = FALSE,
+                      message = FALSE,
+                      error = FALSE)
+
+#load packages
+pacman::p_load(tidyverse)
+```
+
+```{r read-data}
+transit_cost <- read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-01-05/transit_cost.csv')
+```
+
+## Question 1
+
+Use the transit costs data to reproduce the following plot. 
+
+## Question 2
+
+Visualize the same relation, but displaying the uncertainty using an alternative method of your choosing.
+
+## Question 3
+
+Compute the mean length and real_cost by city. Reproduce the following plot.
+
+## Question 4
+
+Using basically the same data, reproduce the following plot. Note you’ll need the country_name column in your dataset.
+
+## Question 5
+
+Use the crime dataset to run the following code and fit the corresponding model. Note, it may take a moment to run.
+
