@@ -20,7 +20,7 @@ knitr::opts_chunk$set(echo = TRUE,
                       error = FALSE)
 
 #load packages
-pacman::p_load(tidyverse)
+pacman::p_load(tidyverse, gghighlight, ggtext, ggrepel)
 ```
 
 ```{r read-data}
@@ -38,6 +38,39 @@ Visualize the same relation, but displaying the uncertainty using an alternative
 ## Question 3
 
 Compute the mean length and real_cost by city. Reproduce the following plot.
+
+```{r}
+transit_cost %>% 
+    group_by(country,city) %>% 
+    summarise(
+        n = n(),
+        length_mean = mean(length, na.rm = TRUE),
+        real_cost_mean = mean(as.numeric(real_cost), na.rm = TRUE) #real_cost is char
+    ) %>% 
+    ggplot(aes(x = length_mean, y = real_cost_mean))+
+    geom_point(aes(size = n), color = "#bf35cf")+
+    scale_x_log10(limits = c(-1, 200))+
+    scale_y_log10(labels = scales::dollar)+
+    scale_size_binned(name = "Number of transit systems", breaks = c(5, 10, 20))+
+    gghighlight(country == "IN",
+                unhighlighted_params = list(color = "gray80"))+
+    geom_text_repel(aes(label = city),
+                  min.segment.length = 0)+
+  labs(
+    title = "Longer transit systems tend to cost more",
+    subtitle = "<span style = 'color: #bf35cf'>**India**</span> has among the most transit systems in the world",
+    x = "Average length",
+    y = "Average cost",
+    caption = "Note the log transformation to the axes"
+     )+
+    theme_minimal()+
+    theme(
+        plot.subtitle = element_markdown(),
+        legend.position="bottom",
+        plot.title.position = "plot"
+    )
+```
+
 
 ## Question 4
 
