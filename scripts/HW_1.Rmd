@@ -117,14 +117,10 @@ dizcretized <- data.frame(
       mean = wbarnum$estimate,
       sd = wbarnum$std.error)) %>% 
         mutate( wbarnum = ifelse( x <= 0,"#8A7D98","#2CB48E" ))
-
-
-
 ```
 
 
 ```{r fig.height=8, fig.width=7}
-
 #Discretized plot
 ggplot(dizcretized, aes(x)) +
   geom_dotplot(aes(fill = wbarnum), binwidth = 0.039) +
@@ -142,6 +138,8 @@ ggplot(dizcretized, aes(x)) +
     theme_minimal() +
      theme(plot.subtitle = element_markdown(),
            text = element_text(size=15))
+
+ggsave(here("plots", "Discretized-plot.pdf"))
 ```
 
 
