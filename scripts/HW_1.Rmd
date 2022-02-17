@@ -22,7 +22,7 @@ knitr::opts_chunk$set(echo = TRUE,
                       error = FALSE)
 
 #load packages
-pacman::p_load(tidyverse, tidytuesdayR, dpylr, ggplot2, gghighlight, ggtext, ggrepel, rio, here)
+pacman::p_load(tidyverse, tidytuesdayR, dpylr, ggplot2, gghighlight, ggtext, ggrepel, rio, here, colorspace)
 ```
 
 ```{r read-data}
@@ -122,20 +122,35 @@ p1
 
 ## Question 2
 
-Visualize the same relation, but displaying the uncertainty using an alternative method of your choosing.
-
+Visualize the same relation, but displaying the uncertainty using an alternative method of your choosing - Multiple error bars.
 ```{r}
-
+p2 <- tc_final %>%
+ggplot(aes(x = mean_rc, y = reorder(country_name, mean_rc))) +
+  geom_point(size = 1.8, colour = "blue") +
+  ggtitle("Cost to build transit systems vary across countries") +
+  geom_errorbar(aes(xmin = mean_rc + qnorm(.025)*se,
+                    xmax = mean_rc + qnorm(.975)*se,
+                color = "95%")) + 
+  geom_errorbar(aes(xmin = mean_rc + qnorm(.05)*se,
+                    xmax = mean_rc + qnorm(.95)*se,
+                color = "90%")) +
+  geom_errorbar(aes(xmin = mean_rc + qnorm(.1)*se,
+                    xmax = mean_rc + qnorm(.9)*se,
+                color = "80%"))+
+  scale_color_manual("Confidence Interval",
+                     values = c("#4375D3", lighten("#4375D3", .3), lighten("#4375D3", .6))) +
+  theme_minimal() +
+  theme(plot.title.position = "plot", # easiest way to left align title
+        plot.caption = element_text(hjust = 0.5, size = 10),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        axis.text = element_text(size = 8)) +
+  labs(caption = "Data provided through #tidytuesday by the Transit Costs Project") +
+    scale_x_continuous(name ="Mean Real Cost (In millions of dollars)", breaks = seq(0, 30000, 10000), labels=c("0","10,000","20,000", "30,000")) +
+    scale_y_discrete(name = "Country")
+   
+p2
 ```
-
-
-## Question 1
-
-Use the transit costs data to reproduce the following plot. 
-
-## Question 2
-
-Visualize the same relation, but displaying the uncertainty using an alternative method of your choosing.
 
 ## Question 3
 
