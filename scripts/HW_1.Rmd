@@ -20,102 +20,63 @@ knitr::opts_chunk$set(echo = TRUE,
                       warning = FALSE,
                       message = FALSE,
                       error = FALSE)
-
-#load packages
-pacman::p_load(tidyverse, tidytuesdayR, dpylr, ggplot2, gghighlight, ggtext, ggrepel, rio, here, colorspace)
 ```
 
 ```{r read-data}
-transit_cost <- read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-01-05/transit_cost.csv')
-```
+#load packages
+pacman::p_load(tidyverse, tidytuesdayR, dpylr, ggplot2, gghighlight, ggtext, ggrepel, rio, here, colorspace, ggforce, countrycode)
 
-```{r include=FALSE}
-# save(transit_cost, file = "transit_cost.csv")
+transit_cost <- read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-01-05/transit_cost.csv') %>% 
+    filter(!is.na(country)) #end rows have summary statistics
 ```
 
 ## Question 1
 
-Data Overview
-```{r include=FALSE}
-str(transit_cost)
-```
 
-```{r include=FALSE}
-head(transit_cost)
-```
+```{r data-q1}
+#Data Cleaning
 
-Data Cleaning
-```{r include=FALSE}
-tc <- transit_cost %>%
-  mutate(start_year = as.integer(start_year),
-         end_year = as.integer(end_year),
-         real_cost = as.numeric(real_cost))
-
-tc
-```
-
-```{r include=FALSE}
-tc2 <- tc %>% rename(id = e)
-
-tc2
-```
-
-Adding means and standard errors for real_cost variable
-```{r include=FALSE}
-tc3 <- tc2 %>% 
-    group_by(country) %>%
-    mutate(mean_rc = mean(real_cost), n=n(), sd=sd(real_cost), se=sd/sqrt(n))
-
-tc3
-```
-
-Filter out any country with less than 3 observations
-```{r include=FALSE}
-tc4 <- tc3 %>%
-    filter(n >= 3)
-
-tc4
-```
-
-Join country name data
-```{r include=FALSE}
-#install.packages("countrycode")
-library(countrycode)
 country_codes <- countrycode::codelist %>%
     select(country_name = country.name.en, country = ecb)
+
+tc <- transit_cost %>%
+        mutate(start_year = as.integer(start_year),
+               end_year = as.integer(end_year),
+               real_cost = as.numeric(real_cost)) %>%
+    rename(id = e) %>% #didn't like naming convention
+    group_by(country) %>% #adding means and standard errors for real_cost variable
+    summarise(
+        mean_rc = mean(real_cost), 
+        n=n(), 
+        sd=sd(real_cost), 
+        se=sd/sqrt(n)) %>% 
+    filter(n >= 3) %>%  #Filter out any country with less than 3 observations
+    merge(country_codes, by = "country") #merging with country names 
 ```
 
-```{r include=FALSE}
-tc_join <- 
-    merge(tc4, country_codes, by = "country")
-
-tc_join
-```
-
-```{r include=FALSE}
-tc_final <- tc_join %>%
-    filter(!is.na(country))
-
-tc_final
-```
 
 Use the transit costs data to reproduce the following plot.
 <!-- There is too much space between the y-axis tick labels and the y-axis, but I've tried many things and am still having issues. -->
-```{r}
-p1 <- tc_final %>%
+```{r plot1, fig.height=8, fig.width=6}
+p1 <- tc %>%
 ggplot(aes(x = mean_rc, y = reorder(country_name, mean_rc))) +
-  geom_point(size = 1.8, colour = "blue") +
-  ggtitle("Cost to build transit systems vary across countries") +
-  geom_errorbar(aes(xmin = mean_rc - se, xmax = mean_rc + se, width = 0)) +
-  theme_minimal() +
+  geom_errorbar(aes(xmin = ifelse(mean_rc - 1.96*se<0,0,mean_rc - 1.96*se), 
+                    xmax = mean_rc + 1.96*se, 
+                    width = 0)) +
+  geom_point(size = 1.8, colour = "#2596be") +
+  theme_minimal(base_size = 14) +
   theme(plot.title.position = "plot", # easiest way to left align title
         plot.caption = element_text(hjust = 0.5, size = 10),
         panel.grid.major.y = element_blank(),
         panel.grid.minor.x = element_blank(),
-        axis.text = element_text(size = 8)) +
-  labs(caption = "Data provided through #tidytuesday by the Transit Costs Project") +
-    scale_x_continuous(name ="Mean Real Cost (In millions of dollars)", limits = c(0, 30000), breaks = seq(0, 30000, 10000), labels=c("0","10,000","20,000", "30,000"),
-                       expand = c(0,0)) +
+        axis.text = element_text(size = 12)) +
+  labs(title = "Cost to build transit systems vary across countries",
+       caption = "Data provided through #tidytuesday by the Transit Costs Project") +
+  scale_x_continuous(name ="Real Cost (In millions of dollars)", 
+                     limits = c(0, 35000), 
+                     breaks = seq(0, 30000, 10000), 
+                     labels=c("0","10,000","20,000", "30,000"),
+                     expand = c(0,0)) +
     scale_y_discrete(name = "Country")
    
 p1
@@ -124,30 +85,32 @@ p1
 ## Question 2
 
 Visualize the same relation, but displaying the uncertainty using an alternative method of your choosing - Multiple error bars.
-```{r}
-p2 <- tc_final %>%
+```{r plot2, fig.height=8, fig.width=8}
+p2 <- tc %>%
 ggplot(aes(x = mean_rc, y = reorder(country_name, mean_rc))) +
-  geom_point(size = 1.8, colour = "blue") +
-  ggtitle("Cost to build transit systems vary across countries") +
-  geom_errorbar(aes(xmin = mean_rc + qnorm(.025)*se,
+  geom_errorbar(aes(xmin = ifelse(mean_rc + qnorm(.025)*se<0,0,mean_rc + qnorm(.025)*se),
                     xmax = mean_rc + qnorm(.975)*se,
                 color = "95%")) + 
-  geom_errorbar(aes(xmin = mean_rc + qnorm(.05)*se,
+  geom_errorbar(aes(xmin = ifelse(mean_rc + qnorm(.05)*se<0,0,mean_rc + qnorm(.05)*se),
                     xmax = mean_rc + qnorm(.95)*se,
                 color = "90%")) +
-  geom_errorbar(aes(xmin = mean_rc + qnorm(.1)*se,
+  geom_errorbar(aes(xmin = ifelse(mean_rc + qnorm(.1)*se<0,0,mean_rc + qnorm(.1)*se),
                     xmax = mean_rc + qnorm(.9)*se,
                 color = "80%"))+
+  geom_point(size = 1.8, colour = "blue") +
   scale_color_manual("Confidence Interval",
                      values = c("#4375D3", lighten("#4375D3", .3), lighten("#4375D3", .6))) +
-  theme_minimal() +
+  theme_minimal(base_size = 14) +
   theme(plot.title.position = "plot", # easiest way to left align title
         plot.caption = element_text(hjust = 0.5, size = 10),
         panel.grid.major.y = element_blank(),
         panel.grid.minor.x = element_blank(),
-        axis.text = element_text(size = 8)) +
-  labs(caption = "Data provided through #tidytuesday by the Transit Costs Project") +
-    scale_x_continuous(name ="Mean Real Cost (In millions of dollars)", breaks = seq(0, 30000, 10000), labels=c("0","10,000","20,000", "30,000"),
+        axis.text = element_text(size = 12)) +
+  labs(caption = "Data provided through #tidytuesday by the Transit Costs Project",
+       title = "Cost to build transit systems vary across countries") +
+    scale_x_continuous(name ="Real Cost (In millions of dollars)", 
+                       breaks = seq(0, 30000, 10000), 
+                       labels=c("0","10,000","20,000", "30,000"),
                        expand = c(0,0)) +
     scale_y_discrete(name = "Country")
    
@@ -158,7 +121,7 @@ p2
 
 Compute the mean length and real_cost by city. Reproduce the following plot.
 
-```{r}
+```{r plot3}
 transit_cost %>% 
     group_by(country,city) %>% 
     summarise(
@@ -197,8 +160,7 @@ transit_cost %>%
 
 Using basically the same data, reproduce the following plot. Note you’ll need the country_name column in your dataset.
 
-```{r}
-library(ggforce)
+```{r plot4}
 q4 <- transit_cost %>% 
     group_by(country,city) %>% 
     summarise(
@@ -206,9 +168,7 @@ q4 <- transit_cost %>%
         length_mean = mean(length, na.rm = TRUE),
         real_cost_mean = mean(as.numeric(real_cost), na.rm = TRUE) #real_cost is char
     ) %>% 
-    mutate(
-        country_name = ifelse(country == "US", "United States", NA)
-    )
+    left_join(country_codes, by = "country")
 
 q4 %>% 
     ggplot(aes(x = length_mean, y = real_cost_mean))+
@@ -224,7 +184,8 @@ q4 %>%
                     label.colour = "#2596be",
                     con.colour = "pink",
                     color = "pink",
-                    expand = unit(1, "mm"))+
+                    expand = unit(1, "mm"),
+                    con.type = "elbow")+
     geom_label_repel(data = filter(drop_na(q4),country == "US"), 
                      aes(label = city),
                     min.segment.length = 0, 
@@ -247,13 +208,13 @@ q4 %>%
 
 Use the crime dataset to run the following code and fit the corresponding model. Note, it may take a moment to run.
 
-```{r include=FALSE}
+```{r data-q5}
 crime <- import(here("data", "crime.csv")) %>% 
     janitor::clean_names()
 ```
 
 
-```{r include=FALSE}
+```{r model-q5, results = "hide"}
 model_data <- crime %>% 
   mutate(neighborhood_id = relevel(factor(neighborhood_id), ref = "barnum"))
 
@@ -274,7 +235,7 @@ qnorm(ppoints(20),
 ```
 
 
-```{r include=FALSE}
+```{r transform-q5}
 dizcretized <- data.frame(
     x = qnorm(ppoints(20), 
       mean = wbarnum$estimate,
@@ -283,7 +244,7 @@ dizcretized <- data.frame(
 ```
 
 
-```{r fig.height=8, fig.width=7}
+```{r plot5, fig.height=8, fig.width=7}
 #Discretized plot
 ggplot(dizcretized, aes(x)) +
   geom_dotplot(aes(fill = wbarnum), binwidth = 0.039) +
